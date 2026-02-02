@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  title       String
+  company     String
+  location    String?
+  description String
+  url         String    @unique
+  salary      String?
+  level       String    // ESTAGIO, JUNIOR, PLENO
+  type        String    // FRONTEND, BACKEND, FULLSTACK, MOBILE
+  remote      Boolean   @default(false)
+  source      Source    @relation(fields: [sourceId], references: [id])
+  sourceId    String
+  tags        JobTag[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  postedAt    DateTime?
+}
+
+model Source {
+  id   String @id @default(cuid())
+  name String @unique
+  url  String
+  jobs Job[]
+}
+
+model Tag {
+  id   String   @id @default(cuid())
+  name String   @unique
+  jobs JobTag[]
+}
+
+model JobTag {
+  job   Job    @relation(fields: [jobId], references: [id])
+  jobId String
+  tag   Tag    @relation(fields: [tagId], references: [id])
+  tagId String
+
+  @@id([jobId, tagId])
+}
