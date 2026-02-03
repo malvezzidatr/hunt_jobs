@@ -71,7 +71,7 @@ function JobSlide({ job, onJobClick }: JobSlideProps) {
             </p>
 
             <div className="promo-banner-cta">
-              <ZevButton size="lg" variant={job.isLightBg ? 'secondary' : 'outline-light'} onButtonClick={handleClick}>
+              <ZevButton size="lg" variant={'outline-light'} onButtonClick={handleClick}>
                 Ver detalhes
               </ZevButton>
             </div>

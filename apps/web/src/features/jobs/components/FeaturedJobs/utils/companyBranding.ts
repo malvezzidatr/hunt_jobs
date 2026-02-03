@@ -51,8 +51,8 @@ const companyColors: Record<string, CompanyColors> = {
   // Bancos e Fintechs
   'nubank': ['#820ad1', '#9b2dd6', '#ba68c8'],
   'santander': ['#ec0000', '#ff1a1a', '#ff6666'],
-  'itau': ['#f5f5f5', '#ffffff', '#e8e8e8'],
-  'itaú': ['#f5f5f5', '#ffffff', '#e8e8e8'],
+  'itau': ['#1a1a1a', '#333333', '#000000'],
+  'itaú': ['#1a1a1a', '#333333', '#000000'],
   'bradesco': ['#cc092f', '#e60033', '#ff3366'],
   'inter': ['#ff7a00', '#ff9433', '#ffad66'],
   'c6': ['#1a1a1a', '#333333', '#4d4d4d'],
