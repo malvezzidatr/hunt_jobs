@@ -38,8 +38,13 @@ export class SchedulerService implements OnApplicationBootstrap {
     }
   }
 
-  // Executar ao iniciar a aplicação
+  // Executar ao iniciar a aplicação (apenas em produção)
   async onApplicationBootstrap() {
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.log('Ambiente de desenvolvimento - sync automático desabilitado');
+      return;
+    }
+
     this.logger.log('Executando sincronização inicial...');
     try {
       await this.scrapersService.syncAll();

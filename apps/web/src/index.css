@@ -550,9 +550,41 @@ a {
   flex-wrap: wrap;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 576px) {
   .job-detail-content {
     padding: 1rem;
+  }
+
+  .job-detail-title-section {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .job-detail-title-section zev-section-header {
+    --zev-section-header-title-size: 1.25rem;
+  }
+
+  .job-detail-share-button {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .job-detail-company {
+    font-size: 1rem;
+  }
+
+  .job-detail-level {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+
+  .job-detail-level-badges {
+    flex-wrap: wrap;
+  }
+
+  .job-detail-info {
+    grid-template-columns: 1fr;
   }
 
   .job-detail-actions {
@@ -868,16 +900,32 @@ a {
   }
 
   .promo-banner {
-    height: 320px;
+    height: 380px;
     border-radius: 0;
   }
 
   .promo-banner-content {
     padding: 1.5rem;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .promo-banner-content-logo {
+    width: 100px;
+    height: 100px;
+    margin-right: 0;
+    margin-bottom: 1rem;
   }
 
   .promo-banner-left {
     max-width: 100%;
+    width: 100%;
+    align-items: center;
+    text-align: center;
+  }
+
+  .promo-banner-badge {
+    align-self: center;
   }
 
   .banner-wave {
@@ -886,7 +934,7 @@ a {
   }
 
   .promo-banner-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .promo-banner-subtitle {
@@ -895,7 +943,7 @@ a {
 
   .promo-banner-cta {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 1rem;
   }
 

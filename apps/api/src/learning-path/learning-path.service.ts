@@ -71,6 +71,7 @@ Retorne APENAS um JSON válido (sem markdown, sem backticks) com este formato ex
 REGRAS IMPORTANTES:
 - Máximo 6 tecnologias, ordenadas por prioridade (essencial primeiro)
 - priority deve ser: "essencial", "importante" ou "diferencial"
+- ATENÇÃO com linguagens alternativas: Quando a vaga diz "uma ou mais", "qualquer uma", "X ou Y ou Z", significa que o candidato precisa saber APENAS UMA delas, não todas. Nesse caso, escolha a mais popular/fácil de aprender como "essencial" e marque as outras como "diferencial"
 - CRÍTICO: Use APENAS nomes de tecnologias específicas e padronizadas. Exemplos corretos:
   * Mobile: "React Native", "Flutter", "Kotlin", "Swift" (NÃO use "Desenvolvimento Mobile")
   * Backend: "Node.js", "Python", "Java", "Spring", "NestJS" (NÃO use "Backend Development")
