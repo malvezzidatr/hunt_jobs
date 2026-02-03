@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { ScrapersService } from '../scrapers/scrapers.service';
 import { JobsService } from '../jobs/jobs.service';
 
 @Injectable()
-export class SchedulerService {
+export class SchedulerService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SchedulerService.name);
 
   constructor(
@@ -38,11 +38,14 @@ export class SchedulerService {
     }
   }
 
-  // Também executar ao iniciar a aplicação (opcional)
-  // @Cron(CronExpression.EVERY_MINUTE) // Para testes
+  // Executar ao iniciar a aplicação
   async onApplicationBootstrap() {
-    // Descomentar para sincronizar ao iniciar
-    // this.logger.log('Executando sincronização inicial...');
-    // await this.scrapersService.syncAll();
+    this.logger.log('Executando sincronização inicial...');
+    try {
+      await this.scrapersService.syncAll();
+      this.logger.log('Sincronização inicial concluída!');
+    } catch (error) {
+      this.logger.error(`Erro na sincronização inicial: ${error.message}`);
+    }
   }
 }
