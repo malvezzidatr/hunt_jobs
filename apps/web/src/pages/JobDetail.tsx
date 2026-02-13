@@ -10,6 +10,8 @@ import {
 } from '@malvezzidatr/zev-react'
 import { useJob } from '../features/jobs'
 import { useFavorites } from '../features/favorites'
+import { useApplications } from '../features/application-tracker'
+import { useAuth } from '../features/auth'
 import { ResumeAnalyzer, ResumeOptimizer } from '../features/resume-analyzer'
 import { LearningPath } from '../features/learning-path'
 
@@ -18,8 +20,11 @@ export default function JobDetail() {
   const navigate = useNavigate()
   const { job, loading, error } = useJob(id || '')
   const { isFavorite, toggleFavorite } = useFavorites()
+  const { isAuthenticated } = useAuth()
+  const { applications, createApplication, isCreating } = useApplications()
 
   const jobIsFavorite = id ? isFavorite(id) : false
+  const isSavedToTracker = applications.some((app) => app.jobId === id)
   const [copied, setCopied] = useState(false)
   const [showAnalyzer, setShowAnalyzer] = useState(false)
   const [showOptimizer, setShowOptimizer] = useState(false)
@@ -292,6 +297,15 @@ export default function JobDetail() {
             <ZevButton variant="primary" onButtonClick={handleApply}>
               Ver Vaga Original
             </ZevButton>
+            {isAuthenticated && (
+              <ZevButton
+                variant={isSavedToTracker ? 'primary' : 'secondary'}
+                onButtonClick={() => { if (id && !isSavedToTracker) createApplication({ jobId: id }) }}
+                disabled={isSavedToTracker || isCreating}
+              >
+                {isSavedToTracker ? 'No Tracker' : 'Salvar no Tracker'}
+              </ZevButton>
+            )}
             <ZevButton
               variant={jobIsFavorite ? 'primary' : 'secondary'}
               onButtonClick={handleToggleFavorite}
