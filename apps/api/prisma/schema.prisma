@@ -20,10 +20,11 @@ model Job {
   remote      Boolean   @default(false)
   source      Source    @relation(fields: [sourceId], references: [id])
   sourceId    String
-  tags        JobTag[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  postedAt    DateTime?
+  tags         JobTag[]
+  applications ApplicationTrack[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  postedAt     DateTime?
 }
 
 model Source {
@@ -46,4 +47,44 @@ model JobTag {
   tagId String
 
   @@id([jobId, tagId])
+}
+
+model User {
+  id           String            @id @default(cuid())
+  email        String            @unique
+  name         String?
+  avatar       String?
+  provider     String
+  providerId   String
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  techProfile  UserTechProfile?
+  applications ApplicationTrack[]
+
+  @@unique([provider, providerId])
+}
+
+model UserTechProfile {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+  techs     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApplicationTrack {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  job       Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId     String
+  status    String    @default("SAVED")
+  notes     String?
+  appliedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, jobId])
 }
