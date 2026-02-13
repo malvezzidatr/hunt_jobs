@@ -61,21 +61,6 @@ export function useResumeOptimizer({
     setFile(null)
   }, [])
 
-  // Workaround: ZevFileUpload bloqueia seleção de novo arquivo em modo single
-  // quando já existe um. Patch _handleFiles para limpar antes de processar.
-  const fileUploadRef = useCallback((el: HTMLElement | null) => {
-    const element = el as any
-    if (!element?._handleFiles || element._patched) return
-    const original = element._handleFiles
-    element._handleFiles = function (fileList: FileList | null) {
-      if (!this.multiple && this._files?.length > 0) {
-        this._files = []
-      }
-      original.call(this, fileList)
-    }
-    element._patched = true
-  }, [])
-
   const onOptimizeAnother = useCallback(() => {
     setResult(null)
     setFile(null)
@@ -111,6 +96,5 @@ export function useResumeOptimizer({
     onRemoveFile,
     onOptimizeAnother,
     onCopySummary,
-    fileUploadRef,
   }
 }

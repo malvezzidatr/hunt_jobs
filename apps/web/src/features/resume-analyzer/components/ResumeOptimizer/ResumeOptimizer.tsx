@@ -4,6 +4,7 @@ import {
   ZevProgressBar,
   ZevButton,
   ZevLoader,
+  ZevTag,
 } from '@malvezzidatr/zev-react'
 import { useResumeOptimizer } from './useResumeOptimizer'
 import type { ResumeOptimizerProps } from './ResumeOptimizer.types'
@@ -21,7 +22,6 @@ export function ResumeOptimizer({ jobId, jobTitle, isOpen, onClose }: ResumeOpti
         {!vm.hasResult && (
           <>
             <ZevFileUpload
-              ref={vm.fileUploadRef}
               accept=".pdf"
               maxSize={5 * 1024 * 1024}
               label="Curriculo (PDF)"
@@ -119,7 +119,7 @@ export function ResumeOptimizer({ jobId, jobTitle, isOpen, onClose }: ResumeOpti
                 <div className="resume-optimizer-keywords">
                   {vm.result.keywordsToAdd.map((kw, index) => (
                     <div key={index} className="resume-optimizer-keyword-item">
-                      <span className="resume-optimizer-keyword-name">{kw.keyword}</span>
+                      <ZevTag label={kw.keyword} variant="accent" size="small" />
                       <span className="resume-optimizer-keyword-suggestion">{kw.suggestion}</span>
                     </div>
                   ))}

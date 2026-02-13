@@ -4,6 +4,7 @@ import {
   ZevProgressBar,
   ZevButton,
   ZevLoader,
+  ZevTag,
 } from '@malvezzidatr/zev-react'
 import { useResumeAnalyzer } from './useResumeAnalyzer'
 import type { ResumeAnalyzerProps } from './ResumeAnalyzer.types'
@@ -21,7 +22,6 @@ export function ResumeAnalyzer({ jobId, jobTitle, isOpen, onClose }: ResumeAnaly
         {!vm.hasResult && (
           <>
             <ZevFileUpload
-              ref={vm.fileUploadRef}
               accept=".pdf"
               maxSize={5 * 1024 * 1024}
               label="Currículo (PDF)"
@@ -104,9 +104,7 @@ export function ResumeAnalyzer({ jobId, jobTitle, isOpen, onClose }: ResumeAnaly
                 </h4>
                 <div className="resume-analyzer-keywords">
                   {vm.result.missingKeywords.map((keyword, index) => (
-                    <span key={index} className="resume-analyzer-keyword">
-                      {keyword}
-                    </span>
+                    <ZevTag key={index} label={keyword} variant="ghost" size="small" />
                   ))}
                 </div>
               </div>

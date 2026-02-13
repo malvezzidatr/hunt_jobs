@@ -1,4 +1,4 @@
-import { ZevButton, ZevLoader, ZevSkillCard } from '@malvezzidatr/zev-react'
+import { ZevButton, ZevLoader, ZevSkillCard, ZevTag } from '@malvezzidatr/zev-react'
 import { useLearningPath } from './useLearningPath'
 import {
   mapPriorityToBadge,
@@ -124,7 +124,7 @@ export function LearningPath({ jobId }: LearningPathProps) {
                 <p className="project-description">{project.description}</p>
                 <div className="project-techs">
                   {project.technologies.map((tech, j) => (
-                    <span key={j} className="project-tech">{tech}</span>
+                    <ZevTag key={j} label={tech} variant="ghost" size="small" />
                   ))}
                 </div>
               </div>

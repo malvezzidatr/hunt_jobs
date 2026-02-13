@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@malvezzidatr/zev-core": "^0.7.11",
-    "@malvezzidatr/zev-react": "^0.7.11",
+    "@malvezzidatr/zev-core": "^0.8.0",
+    "@malvezzidatr/zev-react": "^0.8.0",
     "@malvezzidatr/zev-tokens": "^0.7.11",
     "@tanstack/react-query": "^5.90.20",
     "@vercel/analytics": "^1.6.1",

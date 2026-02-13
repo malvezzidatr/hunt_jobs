@@ -3,6 +3,7 @@ import {
   ZevSelect,
   ZevLoader,
   ZevEmptyState,
+  ZevStatCard,
 } from '@malvezzidatr/zev-react'
 import {
   BarChart,
@@ -93,26 +94,13 @@ function SummaryCards({ vm }: { vm: DashboardViewModel }) {
 
   return (
     <div className="dashboard-summary">
-      <div className="dashboard-summary-card">
-        <div className="dashboard-summary-card-value">{summary.totalActive}</div>
-        <div className="dashboard-summary-card-label">Vagas Ativas</div>
-      </div>
-      <div className="dashboard-summary-card">
-        <div className="dashboard-summary-card-value">{summary.remotePercentage}%</div>
-        <div className="dashboard-summary-card-label">Remotas</div>
-      </div>
-      <div className="dashboard-summary-card">
-        <div className="dashboard-summary-card-value dashboard-summary-card-value--tech">
-          {summary.topTechnology || '—'}
-        </div>
-        <div className="dashboard-summary-card-label">Tecnologia #1</div>
-      </div>
-      <div className="dashboard-summary-card">
-        <div className="dashboard-summary-card-value dashboard-summary-card-value--tech">
-          {summary.topArea ? AREA_LABELS[summary.topArea] || summary.topArea : '—'}
-        </div>
-        <div className="dashboard-summary-card-label">Área com Mais Vagas</div>
-      </div>
+      <ZevStatCard value={String(summary.totalActive)} label="Vagas Ativas" />
+      <ZevStatCard value={`${summary.remotePercentage}%`} label="Remotas" />
+      <ZevStatCard value={summary.topTechnology || '—'} label="Tecnologia #1" />
+      <ZevStatCard
+        value={summary.topArea ? AREA_LABELS[summary.topArea] || summary.topArea : '—'}
+        label="Área com Mais Vagas"
+      />
     </div>
   )
 }
@@ -223,8 +211,8 @@ function DashboardSkeleton() {
         ))}
       </div>
       <div className="dashboard-charts-grid">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className={`dashboard-skeleton-card ${i === 0 || i === 3 ? 'dashboard-chart-card--full' : ''}`}>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className={`dashboard-skeleton-card ${i === 0 ? 'dashboard-chart-card--full' : ''}`}>
             <ZevLoader size="lg" />
           </div>
         ))}

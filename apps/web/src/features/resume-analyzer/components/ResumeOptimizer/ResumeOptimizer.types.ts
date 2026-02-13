@@ -29,7 +29,6 @@ export interface ResumeOptimizerActions {
   onClose: () => void
   onRemoveFile: (e?: CustomEvent) => void
   onOptimizeAnother: () => void
-  fileUploadRef: (el: HTMLElement | null) => void
   onCopySummary: () => void
   summaryCopied: boolean
 }

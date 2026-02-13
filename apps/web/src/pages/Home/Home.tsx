@@ -8,6 +8,8 @@ import {
   ZevLoader,
   ZevEmptyState,
   ZevPagination,
+  ZevStatCard,
+  ZevTag,
 } from '@malvezzidatr/zev-react'
 import { FeaturedJobs } from '../../features/jobs'
 import { getMatchLevel } from '../../features/tech-profile'
@@ -80,31 +82,18 @@ function StatsSection({ vm }: { vm: ReturnType<typeof useHome> }) {
 
   return (
     <div className="stats">
-      <div className="stat-item">
-        <div className="stat-value">{vm.stats.total}</div>
-        <div className="stat-label">Vagas Totais</div>
-      </div>
-      <div className="stat-item">
-        <div className="stat-value">{vm.stats.remote}</div>
-        <div className="stat-label">Vagas Remotas</div>
-      </div>
-      <div className="stat-item">
-        <div className="stat-value">
-          {vm.stats.byLevel.find(l => l.level === 'JUNIOR')?.count || 0}
-        </div>
-        <div className="stat-label">Vagas Júnior</div>
-      </div>
-      <div className="stat-item">
-        <div className="stat-value">
-          {vm.stats.byLevel.find(l => l.level === 'ESTAGIO')?.count || 0}
-        </div>
-        <div className="stat-label">Estágios</div>
-      </div>
+      <ZevStatCard value={String(vm.stats.total)} label="Vagas Totais" />
+      <ZevStatCard value={String(vm.stats.remote)} label="Vagas Remotas" />
+      <ZevStatCard
+        value={String(vm.stats.byLevel.find(l => l.level === 'JUNIOR')?.count || 0)}
+        label="Vagas Júnior"
+      />
+      <ZevStatCard
+        value={String(vm.stats.byLevel.find(l => l.level === 'ESTAGIO')?.count || 0)}
+        label="Estágios"
+      />
       {vm.newJobsCount > 0 && (
-        <div className="stat-item stat-item--new">
-          <div className="stat-value stat-value--new">{vm.newJobsCount}</div>
-          <div className="stat-label">Novas</div>
-        </div>
+        <ZevStatCard value={String(vm.newJobsCount)} label="Novas" variant="accent" />
       )}
     </div>
   )
@@ -195,10 +184,10 @@ function TechProfileSection({ vm }: { vm: ReturnType<typeof useHome> }) {
         {vm.hasProfile && !isOpen && (
           <div className="tech-profile-pills">
             {vm.techs.slice(0, 6).map(tech => (
-              <span key={tech} className="tech-profile-pill">{tech}</span>
+              <ZevTag key={tech} label={tech} size="small" />
             ))}
             {vm.techs.length > 6 && (
-              <span className="tech-profile-pill tech-profile-pill--more">+{vm.techs.length - 6}</span>
+              <ZevTag label={`+${vm.techs.length - 6}`} variant="accent" size="small" />
             )}
           </div>
         )}
@@ -211,13 +200,14 @@ function TechProfileSection({ vm }: { vm: ReturnType<typeof useHome> }) {
             {vm.hasProfile ? (
               <div className="tech-profile-pills">
                 {vm.techs.map(tech => (
-                  <button
+                  <ZevTag
                     key={tech}
-                    className="tech-profile-pill tech-profile-pill--removable"
-                    onClick={() => vm.toggleTech(tech)}
-                  >
-                    {tech} &times;
-                  </button>
+                    label={tech}
+                    variant="accent"
+                    size="small"
+                    removable
+                    onTagRemove={() => vm.toggleTech(tech)}
+                  />
                 ))}
               </div>
             ) : (
@@ -240,13 +230,14 @@ function TechProfileSection({ vm }: { vm: ReturnType<typeof useHome> }) {
                 <p className="tech-profile-hint">Nenhuma tecnologia encontrada para "{vm.techSearch}"</p>
               ) : (
                 vm.availableTags.map(tag => (
-                  <button
+                  <ZevTag
                     key={tag}
-                    className={`tech-profile-tag ${vm.hasTech(tag) ? 'tech-profile-tag--active' : ''}`}
-                    onClick={() => vm.toggleTech(tag)}
-                  >
-                    {vm.hasTech(tag) ? `✓ ${tag}` : tag}
-                  </button>
+                    label={vm.hasTech(tag) ? `✓ ${tag}` : tag}
+                    variant={vm.hasTech(tag) ? 'accent' : 'outline'}
+                    size="small"
+                    interactive
+                    onTagClick={() => vm.toggleTech(tag)}
+                  />
                 ))
               )}
             </div>
