@@ -1,4 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '../../auth'
+import { fetchAPI } from '../../../shared/services/api'
 
 const TECH_PROFILE_KEY = 'huntjobs_tech_profile'
 
@@ -54,54 +57,117 @@ export function getMatchLevel(score: number): 'high' | 'medium' | 'low' | 'none'
   return 'none'
 }
 
+function getLocalTechs(): string[] {
+  try {
+    const stored = localStorage.getItem(TECH_PROFILE_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
 export function useTechProfile() {
-  const [techs, setTechs] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem(TECH_PROFILE_KEY)
-      return stored ? JSON.parse(stored) : []
-    } catch {
-      return []
+  const { isAuthenticated } = useAuth()
+  const queryClient = useQueryClient()
+  const migratedRef = useRef(false)
+
+  // Local state for anonymous users
+  const [localTechs, setLocalTechs] = useState<string[]>(getLocalTechs)
+
+  // Sync local state to localStorage (anonymous only)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      try {
+        localStorage.setItem(TECH_PROFILE_KEY, JSON.stringify(localTechs))
+      } catch {
+        // Ignore
+      }
     }
+  }, [localTechs, isAuthenticated])
+
+  // Server state for authenticated users
+  const { data: serverTechs } = useQuery({
+    queryKey: ['profile', 'techs'],
+    queryFn: () => fetchAPI<{ techs: string[] }>('/profile/techs').then(r => r.techs),
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000,
   })
 
+  const mutation = useMutation({
+    mutationFn: (techs: string[]) =>
+      fetchAPI<{ techs: string[] }>('/profile/techs', {
+        method: 'PUT',
+        body: JSON.stringify({ techs }),
+      }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['profile', 'techs'], data.techs)
+    },
+  })
+
+  // Migration: push localStorage techs to server on first login
   useEffect(() => {
-    try {
-      localStorage.setItem(TECH_PROFILE_KEY, JSON.stringify(techs))
-    } catch {
-      // Ignore localStorage errors
+    if (!isAuthenticated || serverTechs === undefined || migratedRef.current) return
+    migratedRef.current = true
+
+    const local = getLocalTechs()
+    if (local.length > 0 && serverTechs.length === 0) {
+      mutation.mutate(local)
+      localStorage.removeItem(TECH_PROFILE_KEY)
+      setLocalTechs([])
     }
-  }, [techs])
+  }, [isAuthenticated, serverTechs, mutation])
 
-  const addTech = useCallback((name: string) => {
-    const normalized = name.toLowerCase().trim()
-    setTechs(prev => {
-      if (prev.includes(normalized)) return prev
-      return [...prev, normalized]
-    })
-  }, [])
+  // Resolved techs
+  const techs = isAuthenticated ? (serverTechs ?? []) : localTechs
 
-  const removeTech = useCallback((name: string) => {
-    const normalized = name.toLowerCase().trim()
-    setTechs(prev => prev.filter(t => t !== normalized))
-  }, [])
-
-  const toggleTech = useCallback((name: string) => {
-    const normalized = name.toLowerCase().trim()
-    setTechs(prev => {
-      if (prev.includes(normalized)) {
-        return prev.filter(t => t !== normalized)
+  const saveTechs = useCallback(
+    (newTechs: string[]) => {
+      if (isAuthenticated) {
+        mutation.mutate(newTechs)
+      } else {
+        setLocalTechs(newTechs)
       }
-      return [...prev, normalized]
-    })
-  }, [])
+    },
+    [isAuthenticated, mutation],
+  )
 
-  const hasTech = useCallback((name: string) => {
-    return techs.includes(name.toLowerCase().trim())
-  }, [techs])
+  const addTech = useCallback(
+    (name: string) => {
+      const normalized = name.toLowerCase().trim()
+      if (techs.includes(normalized)) return
+      saveTechs([...techs, normalized])
+    },
+    [techs, saveTechs],
+  )
+
+  const removeTech = useCallback(
+    (name: string) => {
+      const normalized = name.toLowerCase().trim()
+      saveTechs(techs.filter(t => t !== normalized))
+    },
+    [techs, saveTechs],
+  )
+
+  const toggleTech = useCallback(
+    (name: string) => {
+      const normalized = name.toLowerCase().trim()
+      if (techs.includes(normalized)) {
+        saveTechs(techs.filter(t => t !== normalized))
+      } else {
+        saveTechs([...techs, normalized])
+      }
+    },
+    [techs, saveTechs],
+  )
+
+  const hasTech = useCallback(
+    (name: string) => techs.includes(name.toLowerCase().trim()),
+    [techs],
+  )
 
   const clearProfile = useCallback(() => {
-    setTechs([])
-  }, [])
+    saveTechs([])
+  }, [saveTechs])
 
   return {
     techs,

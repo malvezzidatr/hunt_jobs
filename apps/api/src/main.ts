@@ -12,6 +12,7 @@ async function bootstrap() {
       'http://localhost:5173',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
 
@@ -26,6 +27,7 @@ async function bootstrap() {
     .setTitle('Hunt Jobs API')
     .setDescription('API para agregação de vagas de emprego')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
