@@ -1,11 +1,13 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { ZevNavbar, ZevFooter, ZevThemeToggle } from '@malvezzidatr/zev-react'
 import type { NavLink, FooterLink, FooterInfo } from '@malvezzidatr/zev-react'
 import Home from './pages/Home'
 import JobDetail from './pages/JobDetail'
+import Dashboard from './pages/Dashboard'
 
 const navLinks: NavLink[] = [
-  { label: 'Vagas', href: '/' },
+  { label: 'Mercado', href: '/mercado' },
 ]
 
 const footerLinks: FooterLink[] = [
@@ -23,6 +25,7 @@ function App() {
     <BrowserRouter>
       <ZevNavbar
         logo="Hunt Jobs"
+        logoHref="/"
         links={navLinks}
         showLangToggle={false}
       />
@@ -34,6 +37,7 @@ function App() {
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/mercado" element={<Dashboard />} />
           <Route path="/job/:id" element={<JobDetail />} />
         </Routes>
       </main>
@@ -45,6 +49,8 @@ function App() {
         decorativeName="HJ"
         copyright="2025 Hunt Jobs"
       />
+
+      <Analytics />
     </BrowserRouter>
   )
 }
