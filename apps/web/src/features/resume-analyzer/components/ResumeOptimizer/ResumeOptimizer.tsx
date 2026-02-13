@@ -21,30 +21,16 @@ export function ResumeOptimizer({ jobId, jobTitle, isOpen, onClose }: ResumeOpti
         {!vm.hasResult && (
           <>
             <ZevFileUpload
+              ref={vm.fileUploadRef}
               accept=".pdf"
               maxSize={5 * 1024 * 1024}
               label="Curriculo (PDF)"
               hint="Arraste ou clique para selecionar. Max. 5MB"
               onFileSelect={vm.onFileSelect}
+              onFileRemove={vm.onRemoveFile}
               onFileError={vm.onFileError}
               disabled={vm.isOptimizing}
             />
-
-            {vm.hasFile && (
-              <div className="resume-optimizer-file">
-                <span className="resume-optimizer-file-name">{vm.fileName}</span>
-                <span className="resume-optimizer-file-size">({vm.fileSize})</span>
-                {!vm.isOptimizing && (
-                  <button
-                    className="resume-optimizer-file-remove"
-                    onClick={vm.onRemoveFile}
-                    aria-label="Remover arquivo"
-                  >
-                    x
-                  </button>
-                )}
-              </div>
-            )}
 
             {vm.hasError && <p className="resume-optimizer-error">{vm.errorMessage}</p>}
 

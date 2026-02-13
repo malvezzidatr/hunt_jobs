@@ -21,30 +21,16 @@ export function ResumeAnalyzer({ jobId, jobTitle, isOpen, onClose }: ResumeAnaly
         {!vm.hasResult && (
           <>
             <ZevFileUpload
+              ref={vm.fileUploadRef}
               accept=".pdf"
               maxSize={5 * 1024 * 1024}
               label="Currículo (PDF)"
               hint="Arraste ou clique para selecionar. Máx. 5MB"
               onFileSelect={vm.onFileSelect}
+              onFileRemove={vm.onRemoveFile}
               onFileError={vm.onFileError}
               disabled={vm.isAnalyzing}
             />
-
-            {vm.hasFile && (
-              <div className="resume-analyzer-file">
-                <span className="resume-analyzer-file-name">{vm.fileName}</span>
-                <span className="resume-analyzer-file-size">({vm.fileSize})</span>
-                {!vm.isAnalyzing && (
-                  <button
-                    className="resume-analyzer-file-remove"
-                    onClick={vm.onRemoveFile}
-                    aria-label="Remover arquivo"
-                  >
-                    x
-                  </button>
-                )}
-              </div>
-            )}
 
             {vm.hasError && <p className="resume-analyzer-error">{vm.errorMessage}</p>}
 

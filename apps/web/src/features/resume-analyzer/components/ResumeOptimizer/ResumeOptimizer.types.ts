@@ -27,8 +27,9 @@ export interface ResumeOptimizerActions {
   onFileError: (e: CustomEvent<{ errors: string[] }>) => void
   onOptimize: () => Promise<void>
   onClose: () => void
-  onRemoveFile: () => void
+  onRemoveFile: (e?: CustomEvent) => void
   onOptimizeAnother: () => void
+  fileUploadRef: (el: HTMLElement | null) => void
   onCopySummary: () => void
   summaryCopied: boolean
 }

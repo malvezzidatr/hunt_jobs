@@ -34,8 +34,9 @@ export interface ResumeAnalyzerActions {
   onFileError: (e: CustomEvent<{ errors: string[] }>) => void
   onAnalyze: () => Promise<void>
   onClose: () => void
-  onRemoveFile: () => void
+  onRemoveFile: (e?: CustomEvent) => void
   onAnalyzeAnother: () => void
+  fileUploadRef: (el: HTMLElement | null) => void
 }
 
 // ViewModel Return Type
