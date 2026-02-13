@@ -2,13 +2,31 @@ import { useState, useEffect, useCallback } from 'react'
 
 const TECH_PROFILE_KEY = 'huntjobs_tech_profile'
 
+// Normalizar nome da tag removendo emojis e prefixos especiais
+function normalizeTag(name: string): string {
+  return name.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u200d\ufe0f]/gu, '').trim().toLowerCase()
+}
+
+// Checa se a tag é não-técnica (normaliza emojis antes de comparar)
+export function isNonTechTag(name: string): boolean {
+  return NON_TECH_TAGS.has(normalizeTag(name))
+}
+
 // Tags que não são tecnologias — ignoradas no cálculo de match
 export const NON_TECH_TAGS = new Set([
+  // Regime de contratação
   'clt', 'pj', 'contrato', 'freelance', 'temporário', 'temporario',
+  // Níveis
   'júnior', 'junior', 'pleno', 'sênior', 'senior', 'estagiário', 'estagiario', 'estagio', 'estágio',
   'especialista', 'trainee', 'analista', 'líder', 'lider', 'coordenador', 'gerente',
+  // Modalidade
   'remoto', 'presencial', 'híbrido', 'hibrido', 'home office', 'remote',
-  'vaga', 'vagas', 'emprego', 'trabalho', 'oportunidade',
+  // Genéricos
+  'vaga', 'vagas', 'emprego', 'trabalho', 'oportunidade', 'avisos', 'aviso',
+  // Localizações
+  'são paulo', 'sao paulo', 'rio de janeiro', 'belo horizonte', 'curitiba',
+  'porto alegre', 'brasília', 'brasilia', 'salvador', 'fortaleza', 'recife', 'campinas',
+  'sp', 'rj', 'mg', 'pr', 'rs', 'df', 'ba', 'ce', 'pe', 'brasil', 'brazil',
 ])
 
 export function getMatchScore(
@@ -18,7 +36,7 @@ export function getMatchScore(
   if (userTechs.length === 0) return { score: -1, matched: [] }
 
   // Filtrar tags não-técnicas antes de calcular
-  const techTags = jobTags.filter(tag => !NON_TECH_TAGS.has(tag.toLowerCase()))
+  const techTags = jobTags.filter(tag => !isNonTechTag(tag))
   if (techTags.length === 0) return { score: 0, matched: [] }
 
   const userSet = new Set(userTechs.map(t => t.toLowerCase()))

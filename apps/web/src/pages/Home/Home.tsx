@@ -236,15 +236,19 @@ function TechProfileSection({ vm }: { vm: ReturnType<typeof useHome> }) {
 
           {!vm.tagsLoading && (
             <div className="tech-profile-available">
-              {vm.availableTags.slice(0, 30).map(tag => (
-                <button
-                  key={tag}
-                  className={`tech-profile-tag ${vm.hasTech(tag) ? 'tech-profile-tag--active' : ''}`}
-                  onClick={() => vm.toggleTech(tag)}
-                >
-                  {vm.hasTech(tag) ? `✓ ${tag}` : tag}
-                </button>
-              ))}
+              {vm.availableTags.length === 0 && vm.techSearch ? (
+                <p className="tech-profile-hint">Nenhuma tecnologia encontrada para "{vm.techSearch}"</p>
+              ) : (
+                vm.availableTags.map(tag => (
+                  <button
+                    key={tag}
+                    className={`tech-profile-tag ${vm.hasTech(tag) ? 'tech-profile-tag--active' : ''}`}
+                    onClick={() => vm.toggleTech(tag)}
+                  >
+                    {vm.hasTech(tag) ? `✓ ${tag}` : tag}
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>

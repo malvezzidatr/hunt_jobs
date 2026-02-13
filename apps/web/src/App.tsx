@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { ZevNavbar, ZevFooter, ZevThemeToggle } from '@malvezzidatr/zev-react'
@@ -21,6 +22,15 @@ const footerInfo: FooterInfo[] = [
 ]
 
 function App() {
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const theme = (e as CustomEvent<{ theme: string }>).detail?.theme
+      if (theme) localStorage.setItem('huntjobs_theme', theme)
+    }
+    document.addEventListener('theme-change', handler)
+    return () => document.removeEventListener('theme-change', handler)
+  }, [])
+
   return (
     <BrowserRouter>
       <ZevNavbar

@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useJobs, useSources, useTags, useStats, useNewJobs } from '../../features/jobs'
 import { useFavorites } from '../../features/favorites'
-import { useTechProfile, getMatchScore, NON_TECH_TAGS } from '../../features/tech-profile'
+import { useTechProfile, getMatchScore, isNonTechTag } from '../../features/tech-profile'
 import type { JobsQuery } from '../../features/jobs'
 import type { HomeViewModel } from './Home.types'
 
@@ -39,6 +39,9 @@ export function useHome(): HomeViewModel {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
+  // Tech profile primeiro (lê de localStorage, síncrono) - necessário para query inicial
+  const { techs, toggleTech, hasTech, hasProfile, count: techCount } = useTechProfile()
+
   // Ler filtros da URL
   const initialFilters = getFiltersFromURL(searchParams)
 
@@ -57,14 +60,18 @@ export function useHome(): HomeViewModel {
     initialFilters.source ? initialFilters.source.split(',') : []
   )
 
+  // Query inicial já inclui techs para evitar flash de dados desordenados
+  const initialQuery = hasProfile
+    ? { ...initialFilters, techs: techs.join(','), sort: 'match' as const }
+    : initialFilters
+
   // Hooks de dados
-  const { jobs, loading, fetching, error, updateQuery, replaceQuery, goToPage } = useJobs(filters)
+  const { jobs, loading, fetching, error, updateQuery, replaceQuery, goToPage } = useJobs(initialQuery)
   const { sources } = useSources()
   const { tags: allTags, loading: tagsLoading } = useTags()
   const { stats, loading: statsLoading } = useStats()
   const { favorites, isFavorite, count: favoritesCount } = useFavorites()
   const { isNewJob, countNewJobs, markAsVisited } = useNewJobs()
-  const { techs, toggleTech, hasTech, hasProfile, count: techCount } = useTechProfile()
 
   // Tech profile state
   const [techSearch, setTechSearch] = useState('')
@@ -106,8 +113,22 @@ export function useHome(): HomeViewModel {
     }
   }, [isTransitioning])
 
-  // Atualizar query quando filters mudam (com debounce)
+  // Ref para detectar mudança de techs vs outros filtros
+  const prevTechsRef = useRef(techs.join(','))
+
+  // Atualizar query quando filters mudam
+  // Debounce de 500ms para busca de texto, imediato para mudança de techs
   useEffect(() => {
+    const currentTechsKey = techs.join(',')
+    const techsChanged = currentTechsKey !== prevTechsRef.current
+    prevTechsRef.current = currentTechsKey
+
+    if (techsChanged) {
+      setIsTransitioning(true)
+    }
+
+    const delay = techsChanged ? 0 : 500
+
     const timeout = setTimeout(() => {
       // Se tem perfil de techs, enviar techs e sort=match para o backend
       const backendFilters = hasProfile
@@ -123,7 +144,7 @@ export function useHome(): HomeViewModel {
         // Modo normal: substituir completamente a query sem ids
         replaceQuery(backendFilters)
       }
-    }, 500)
+    }, delay)
     return () => clearTimeout(timeout)
   }, [filters, showOnlyFavorites, favorites, updateQuery, replaceQuery, hasProfile, techs])
 
@@ -213,7 +234,7 @@ export function useHome(): HomeViewModel {
   const sourceOptions = sources.map(s => ({ value: s.id, label: s.name }))
   const availableTags = allTags
     .map(t => t.name)
-    .filter(name => !NON_TECH_TAGS.has(name.toLowerCase()))
+    .filter(name => !isNonTechTag(name))
     .filter(name => {
       if (!techSearch) return true
       return name.toLowerCase().includes(techSearch.toLowerCase())

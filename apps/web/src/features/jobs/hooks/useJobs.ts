@@ -1,6 +1,6 @@
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
-import type { JobsQuery } from '../types/job.types';
+import type { JobsQuery, JobsResponse } from '../types/job.types';
 import { getJobs, getJob, getSources, getTags, getStats, getFeaturedJobs } from '../services/jobsApi';
 
 // Query keys para cache
@@ -20,7 +20,14 @@ export function useJobs(initialQuery: JobsQuery = {}) {
   const { data: jobs, isLoading: loading, isFetching, error: queryError } = useQuery({
     queryKey: queryKeys.jobs(query),
     queryFn: () => getJobs(query),
-    placeholderData: keepPreviousData, // Mantém dados anteriores enquanto carrega novos
+    placeholderData: (previousData: JobsResponse | undefined, previousQuery) => {
+      if (!previousData || !previousQuery) return undefined;
+      // Não mostrar dados anteriores quando sort ou techs mudaram
+      // (evita flash de dados na ordem errada ao trocar para sort=match)
+      const prevQ = (previousQuery.queryKey as readonly ['jobs', JobsQuery])[1];
+      if (prevQ?.sort !== query.sort || prevQ?.techs !== query.techs) return undefined;
+      return previousData;
+    },
   });
 
   const error = queryError instanceof Error ? queryError.message : queryError ? 'Erro ao carregar vagas' : null;
