@@ -1,9 +1,11 @@
 // Components
 export { ResumeAnalyzer } from './components/ResumeAnalyzer';
+export { ResumeOptimizer } from './components/ResumeOptimizer';
 
 // Services
-export { analyzeResume } from './services/resumeApi';
+export { analyzeResume, optimizeResume } from './services/resumeApi';
 
 // Types
 export type { ResumeAnalyzerProps } from './components/ResumeAnalyzer/ResumeAnalyzer.types';
-export type { AnalysisResult } from './types/resume.types';
+export type { ResumeOptimizerProps } from './components/ResumeOptimizer/ResumeOptimizer.types';
+export type { AnalysisResult, OptimizationResult } from './types/resume.types';

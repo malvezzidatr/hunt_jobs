@@ -85,4 +85,64 @@ ${job.description}
 
     return analysis;
   }
+
+  @Post('optimize')
+  @ApiOperation({ summary: 'Otimiza o currículo para uma vaga específica' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        jobId: { type: 'string' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype !== 'application/pdf') {
+          return cb(new BadRequestException('Apenas arquivos PDF são aceitos'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async optimize(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('jobId') jobId: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Arquivo PDF é obrigatório');
+    }
+
+    if (!jobId) {
+      throw new BadRequestException('ID da vaga é obrigatório');
+    }
+
+    const job = await this.jobsService.findOne(jobId);
+    if (!job) {
+      throw new NotFoundException('Vaga não encontrada');
+    }
+
+    const resumeText = await this.resumeService.extractTextFromPDF(file.buffer);
+
+    const jobDescription = `
+Título: ${job.title}
+Empresa: ${job.company}
+Nível: ${job.level}
+Tipo: ${job.type}
+${job.remote ? 'Remoto' : 'Presencial'}
+${job.location ? `Localização: ${job.location}` : ''}
+${job.tags.length > 0 ? `Tecnologias: ${job.tags.map(t => t.name).join(', ')}` : ''}
+
+Descrição:
+${job.description}
+`;
+
+    const optimization = await this.geminiService.optimizeResume(resumeText, jobDescription);
+
+    return optimization;
+  }
 }
