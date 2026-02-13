@@ -1,12 +1,15 @@
-import { Controller, Get, Param, Query, Post } from '@nestjs/common';
+import { Controller, Get, Param, Query, Post, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
 import { QueryJobsDto } from './dto/query-jobs.dto';
+import { AnalyticsQueryDto } from './dto/analytics-query.dto';
 import { ScrapersService } from '../scrapers/scrapers.service';
 
 @ApiTags('jobs')
 @Controller('jobs')
 export class JobsController {
+  private readonly logger = new Logger(JobsController.name);
+
   constructor(
     private readonly jobsService: JobsService,
     private readonly scrapersService: ScrapersService,
@@ -44,14 +47,26 @@ export class JobsController {
     return this.jobsService.getTags();
   }
 
+  @Get('analytics')
+  @ApiOperation({ summary: 'Retorna analytics do mercado de vagas' })
+  @ApiResponse({ status: 200, description: 'Dados analíticos do mercado' })
+  async getAnalytics(@Query() query: AnalyticsQueryDto) {
+    return this.jobsService.getAnalytics(query);
+  }
+
   @Post('sync')
   @ApiOperation({ summary: 'Força sincronização manual de todas as fontes' })
   async sync() {
-    const results = await this.scrapersService.syncAll();
-    return {
-      message: 'Sincronização concluída',
-      results,
-    };
+    if (this.scrapersService.getIsSyncing()) {
+      return { message: 'Sincronização já em andamento' };
+    }
+
+    // Fire-and-forget: retorna imediato, sync roda em background
+    this.scrapersService.syncAll().catch((error) =>
+      this.logger.error(`Erro no sync manual: ${error.message}`),
+    );
+
+    return { message: 'Sincronização iniciada em background' };
   }
 
   @Post('cleanup')

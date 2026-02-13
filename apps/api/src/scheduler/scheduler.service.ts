@@ -45,12 +45,10 @@ export class SchedulerService implements OnApplicationBootstrap {
       return;
     }
 
-    this.logger.log('Executando sincronização inicial...');
-    try {
-      await this.scrapersService.syncAll();
-      this.logger.log('Sincronização inicial concluída!');
-    } catch (error) {
-      this.logger.error(`Erro na sincronização inicial: ${error.message}`);
-    }
+    this.logger.log('Executando sincronização inicial em background...');
+    // Fire-and-forget: nao bloqueia o startup do servidor
+    this.scrapersService.syncAll()
+      .then(() => this.logger.log('Sincronização inicial concluída!'))
+      .catch((error) => this.logger.error(`Erro na sincronização inicial: ${error.message}`));
   }
 }

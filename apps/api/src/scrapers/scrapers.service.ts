@@ -15,6 +15,7 @@ export interface ScraperResult {
 @Injectable()
 export class ScrapersService {
   private readonly logger = new Logger(ScrapersService.name);
+  private isSyncing = false;
 
   constructor(
     private readonly githubScraper: GithubScraper,
@@ -24,12 +25,21 @@ export class ScrapersService {
     private readonly vagasScraper: VagasScraper,
   ) {}
 
+  getIsSyncing(): boolean {
+    return this.isSyncing;
+  }
+
   async syncAll(): Promise<ScraperResult[]> {
+    if (this.isSyncing) {
+      this.logger.warn('Sincronização já em andamento, ignorando chamada duplicada');
+      return [];
+    }
+
+    this.isSyncing = true;
     this.logger.log('Iniciando sincronização de todas as fontes...');
 
     const results: ScraperResult[] = [];
 
-    // Executar scrapers em paralelo
     const scrapers = [
       { name: 'GitHub', scraper: this.githubScraper },
       { name: 'LinkedIn', scraper: this.linkedinScraper },
@@ -38,29 +48,26 @@ export class ScrapersService {
       { name: 'Vagas.com.br', scraper: this.vagasScraper },
     ];
 
-    const promises = scrapers.map(async ({ name, scraper }) => {
-      try {
-        this.logger.log(`Executando scraper: ${name}`);
-        const result = await scraper.scrape();
-        this.logger.log(`${name}: ${result.jobsAdded} novas vagas adicionadas`);
-        return result;
-      } catch (error) {
-        this.logger.error(`Erro no scraper ${name}: ${error.message}`);
-        return {
-          source: name,
-          jobsFound: 0,
-          jobsAdded: 0,
-          errors: [error.message],
-        };
+    try {
+      // Executar scrapers sequencialmente para evitar contencao de lock no SQLite
+      for (const { name, scraper } of scrapers) {
+        try {
+          this.logger.log(`Executando scraper: ${name}`);
+          const result = await scraper.scrape();
+          this.logger.log(`${name}: ${result.jobsAdded} novas vagas adicionadas`);
+          results.push(result);
+        } catch (error) {
+          this.logger.error(`Erro no scraper ${name}: ${error.message}`);
+          results.push({
+            source: name,
+            jobsFound: 0,
+            jobsAdded: 0,
+            errors: [error.message],
+          });
+        }
       }
-    });
-
-    const settledResults = await Promise.allSettled(promises);
-
-    for (const result of settledResults) {
-      if (result.status === 'fulfilled') {
-        results.push(result.value);
-      }
+    } finally {
+      this.isSyncing = false;
     }
 
     this.logger.log('Sincronização concluída');
