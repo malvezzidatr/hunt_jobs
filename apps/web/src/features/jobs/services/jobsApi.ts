@@ -11,6 +11,7 @@ export async function getJobs(query: JobsQuery = {}): Promise<JobsResponse> {
   if (query.source) params.set('source', query.source);
   if (query.tags) params.set('tags', query.tags);
   if (query.ids) params.set('ids', query.ids);
+  if (query.techs) params.set('techs', query.techs);
   if (query.period) params.set('period', query.period);
   if (query.sort) params.set('sort', query.sort);
   if (query.page) params.set('page', String(query.page));

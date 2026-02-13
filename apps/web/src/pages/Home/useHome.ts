@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useJobs, useSources, useStats, useNewJobs } from '../../features/jobs'
+import { useJobs, useSources, useTags, useStats, useNewJobs } from '../../features/jobs'
 import { useFavorites } from '../../features/favorites'
+import { useTechProfile, getMatchScore, NON_TECH_TAGS } from '../../features/tech-profile'
 import type { JobsQuery } from '../../features/jobs'
 import type { HomeViewModel } from './Home.types'
 
@@ -15,7 +16,7 @@ function getFiltersFromURL(searchParams: URLSearchParams): JobsQuery {
   const remote = remoteParam === null ? undefined : remoteParam === 'true'
   const source = searchParams.get('source') || undefined
   const period = (searchParams.get('period') || undefined) as '24h' | '7d' | '30d' | undefined
-  const sort = (searchParams.get('sort') || undefined) as 'recent' | 'oldest' | undefined
+  const sort = (searchParams.get('sort') || undefined) as 'recent' | 'oldest' | 'match' | undefined
 
   return { page, limit: 12, search, level, type, remote, source, period, sort }
 }
@@ -30,7 +31,7 @@ function filtersToSearchParams(filters: JobsQuery): Record<string, string> {
   if (filters.remote !== undefined) params.remote = String(filters.remote)
   if (filters.source) params.source = filters.source
   if (filters.period) params.period = filters.period
-  if (filters.sort && filters.sort !== 'recent') params.sort = filters.sort
+  if (filters.sort && filters.sort !== 'recent') params.sort = filters.sort as string
   return params
 }
 
@@ -59,9 +60,15 @@ export function useHome(): HomeViewModel {
   // Hooks de dados
   const { jobs, loading, fetching, error, updateQuery, replaceQuery, goToPage } = useJobs(filters)
   const { sources } = useSources()
+  const { tags: allTags, loading: tagsLoading } = useTags()
   const { stats, loading: statsLoading } = useStats()
   const { favorites, isFavorite, count: favoritesCount } = useFavorites()
   const { isNewJob, countNewJobs, markAsVisited } = useNewJobs()
+  const { techs, toggleTech, hasTech, hasProfile, count: techCount } = useTechProfile()
+
+  // Tech profile state
+  const [techSearch, setTechSearch] = useState('')
+  const [techProfileOpen, setTechProfileOpen] = useState(false)
 
   // Contar vagas novas quando jobs carregarem
   const newJobsCount = jobs?.data ? countNewJobs(jobs.data) : 0
@@ -102,19 +109,23 @@ export function useHome(): HomeViewModel {
   // Atualizar query quando filters mudam (com debounce)
   useEffect(() => {
     const timeout = setTimeout(() => {
+      // Se tem perfil de techs, enviar techs e sort=match para o backend
+      const backendFilters = hasProfile
+        ? { ...filters, techs: techs.join(','), sort: 'match' as const }
+        : filters
       if (showOnlyFavorites && favorites.length > 0) {
         // Modo favoritos: buscar apenas os IDs favoritos
-        updateQuery({ ...filters, ids: favorites.join(',') })
+        updateQuery({ ...backendFilters, ids: favorites.join(',') })
       } else if (showOnlyFavorites && favorites.length === 0) {
         // Modo favoritos mas sem favoritos: query vazia para mostrar empty state
-        updateQuery({ ...filters, ids: 'none' })
+        updateQuery({ ...backendFilters, ids: 'none' })
       } else {
         // Modo normal: substituir completamente a query sem ids
-        replaceQuery(filters)
+        replaceQuery(backendFilters)
       }
     }, 500)
     return () => clearTimeout(timeout)
-  }, [filters, showOnlyFavorites, favorites, updateQuery, replaceQuery])
+  }, [filters, showOnlyFavorites, favorites, updateQuery, replaceQuery, hasProfile, techs])
 
   // Handlers
   const handleToggleFavorites = useCallback(() => {
@@ -162,7 +173,7 @@ export function useHome(): HomeViewModel {
 
   const handleSortChange = useCallback((e: CustomEvent) => {
     const value = (e as CustomEvent<{ value: string }>).detail?.value ?? 'recent'
-    setFilters(prev => ({ ...prev, sort: value as 'recent' | 'oldest', page: 1 }))
+    setFilters(prev => ({ ...prev, sort: value as 'recent' | 'oldest' | 'match', page: 1 }))
   }, [])
 
   const handlePageChange = useCallback((e: CustomEvent) => {
@@ -174,6 +185,15 @@ export function useHome(): HomeViewModel {
   const handleCardClick = useCallback((jobId: string) => () => {
     navigate(`/job/${jobId}`)
   }, [navigate])
+
+  const handleTechSearch = useCallback((e: CustomEvent) => {
+    const value = (e as CustomEvent<{ value: string }>).detail?.value ?? ''
+    setTechSearch(value)
+  }, [])
+
+  const computeMatchScore = useCallback((jobTags: string[]) => {
+    return getMatchScore(jobTags, techs)
+  }, [techs])
 
   const formatPostedAt = useCallback((dateStr?: string) => {
     if (!dateStr) return ''
@@ -191,6 +211,13 @@ export function useHome(): HomeViewModel {
 
   // Derived state
   const sourceOptions = sources.map(s => ({ value: s.id, label: s.name }))
+  const availableTags = allTags
+    .map(t => t.name)
+    .filter(name => !NON_TECH_TAGS.has(name.toLowerCase()))
+    .filter(name => {
+      if (!techSearch) return true
+      return name.toLowerCase().includes(techSearch.toLowerCase())
+    })
 
   return {
     // State
@@ -212,6 +239,16 @@ export function useHome(): HomeViewModel {
     favoritesCount,
     newJobsCount,
 
+    // Tech profile
+    techs,
+    techCount,
+    hasProfile,
+    availableTags,
+    tagsLoading,
+    techSearch,
+    techProfileOpen,
+    setTechProfileOpen,
+
     // Actions
     handleSearchChange,
     handleLevelChange,
@@ -226,5 +263,9 @@ export function useHome(): HomeViewModel {
     isFavorite,
     isNewJob,
     formatPostedAt,
+    toggleTech,
+    hasTech,
+    getMatchScore: computeMatchScore,
+    handleTechSearch,
   }
 }

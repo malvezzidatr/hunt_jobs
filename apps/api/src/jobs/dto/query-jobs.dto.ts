@@ -47,14 +47,19 @@ export class QueryJobsDto {
   @IsString()
   period?: '24h' | '7d' | '30d';
 
+  @ApiPropertyOptional({ description: 'Tecnologias do usuário separadas por vírgula (para sort por match)' })
+  @IsOptional()
+  @IsString()
+  techs?: string;
+
   @ApiPropertyOptional({
     description: 'Ordenação',
-    enum: ['recent', 'oldest'],
+    enum: ['recent', 'oldest', 'match'],
     default: 'recent'
   })
   @IsOptional()
   @IsString()
-  sort?: 'recent' | 'oldest';
+  sort?: 'recent' | 'oldest' | 'match';
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()

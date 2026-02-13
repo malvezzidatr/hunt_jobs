@@ -2,14 +2,32 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueryJobsDto } from './dto/query-jobs.dto';
 import { CreateJobDto } from './dto/create-job.dto';
+import { AnalyticsQueryDto } from './dto/analytics-query.dto';
 import { Prisma } from '@prisma/client';
+
+// Tags que não são tecnologias — ignoradas no cálculo de match
+const NON_TECH_TAGS = new Set([
+  'clt', 'pj', 'contrato', 'freelance', 'temporário', 'temporario',
+  'júnior', 'junior', 'pleno', 'sênior', 'senior', 'estagiário', 'estagiario', 'estagio', 'estágio',
+  'especialista', 'trainee', 'analista', 'líder', 'lider', 'coordenador', 'gerente',
+  'remoto', 'presencial', 'híbrido', 'hibrido', 'home office', 'remote',
+  'vaga', 'vagas', 'emprego', 'trabalho', 'oportunidade',
+]);
+
+function calcMatchScore(jobTagNames: string[], userTechs: string[]): number {
+  const techTags = jobTagNames.filter(t => !NON_TECH_TAGS.has(t.toLowerCase()));
+  if (techTags.length === 0) return 0;
+  const userSet = new Set(userTechs.map(t => t.toLowerCase()));
+  const matched = techTags.filter(t => userSet.has(t.toLowerCase()));
+  return Math.round((matched.length / techTags.length) * 100);
+}
 
 @Injectable()
 export class JobsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(query: QueryJobsDto) {
-    const { search, level, type, remote, source, tags, ids, period, sort = 'recent', page = 1, limit = 20 } = query;
+    const { search, level, type, remote, source, tags, ids, period, techs, sort = 'recent', page = 1, limit = 20 } = query;
 
     const where: Prisma.JobWhereInput = {};
 
@@ -103,8 +121,44 @@ export class JobsService {
       ];
     }
 
-    // Ordenação - usar postedAt (data de publicação) com fallback para createdAt
-    const sortDirection = sort === 'recent' ? 'desc' : 'asc';
+    const include = {
+      source: true,
+      tags: { include: { tag: true } },
+    };
+
+    // Sort por match: buscar tudo, calcular score, ordenar, paginar manualmente
+    const userTechs = techs ? techs.split(',').map(t => t.trim()).filter(Boolean) : [];
+    if (sort === 'match' && userTechs.length > 0) {
+      const [allJobs, total] = await Promise.all([
+        this.prisma.job.findMany({
+          where,
+          include,
+          orderBy: [
+            { postedAt: { sort: 'desc', nulls: 'last' } },
+            { createdAt: 'desc' },
+          ],
+        }),
+        this.prisma.job.count({ where }),
+      ]);
+
+      const scored = allJobs.map(job => ({
+        ...job,
+        tags: job.tags.map(jt => jt.tag),
+        _score: calcMatchScore(job.tags.map(jt => jt.tag.name), userTechs),
+      }));
+
+      scored.sort((a, b) => b._score - a._score);
+
+      const paginated = scored.slice((page - 1) * limit, page * limit);
+
+      return {
+        data: paginated.map(({ _score, ...job }) => job),
+        meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      };
+    }
+
+    // Sort padrão: paginação via Prisma
+    const sortDirection = sort === 'oldest' ? 'asc' : 'desc';
     const orderBy: Prisma.JobOrderByWithRelationInput[] = [
       { postedAt: { sort: sortDirection, nulls: 'last' } },
       { createdAt: sortDirection },
@@ -113,14 +167,7 @@ export class JobsService {
     const [jobs, total] = await Promise.all([
       this.prisma.job.findMany({
         where,
-        include: {
-          source: true,
-          tags: {
-            include: {
-              tag: true,
-            },
-          },
-        },
+        include,
         orderBy,
         skip: (page - 1) * limit,
         take: limit,
@@ -305,6 +352,186 @@ export class JobsService {
       })),
       remote: remoteCount,
     };
+  }
+
+  async getAnalytics(query: AnalyticsQueryDto) {
+    const baseWhere = this.buildAnalyticsWhere(query);
+
+    const [
+      totalActive,
+      remoteCount,
+      topTagResult,
+      areaGroupsRaw,
+      techGroupsRaw,
+      areaData,
+      jobsForTrend,
+      jobsForModality,
+      companyGroups,
+    ] = await Promise.all([
+      this.prisma.job.count({ where: baseWhere }),
+      this.prisma.job.count({ where: { ...baseWhere, remote: true } }),
+      this.prisma.jobTag.groupBy({
+        by: ['tagId'],
+        where: { job: baseWhere },
+        _count: { tagId: true },
+        orderBy: { _count: { tagId: 'desc' } },
+        take: 1,
+      }),
+      this.prisma.job.groupBy({
+        by: ['type'],
+        where: baseWhere,
+        _count: true,
+        orderBy: { _count: { type: 'desc' } },
+        take: 1,
+      }),
+      this.prisma.jobTag.groupBy({
+        by: ['tagId'],
+        where: { job: baseWhere },
+        _count: { tagId: true },
+        orderBy: { _count: { tagId: 'desc' } },
+        take: 15,
+      }),
+      this.prisma.job.groupBy({
+        by: ['type'],
+        where: baseWhere,
+        _count: true,
+      }),
+      this.prisma.job.findMany({
+        where: baseWhere,
+        select: { type: true, postedAt: true, createdAt: true },
+      }),
+      this.prisma.job.findMany({
+        where: baseWhere,
+        select: { remote: true, location: true },
+      }),
+      this.prisma.job.groupBy({
+        by: ['company'],
+        where: baseWhere,
+        _count: true,
+        orderBy: { _count: { company: 'desc' } },
+        take: 10,
+      }),
+    ]);
+
+    // Summary
+    const remotePercentage = totalActive > 0
+      ? Math.round((remoteCount / totalActive) * 100)
+      : 0;
+
+    let topTechnology: string | null = null;
+    if (topTagResult.length > 0) {
+      const tag = await this.prisma.tag.findUnique({ where: { id: topTagResult[0].tagId } });
+      topTechnology = tag?.name ?? null;
+    }
+
+    const topArea = areaGroupsRaw.length > 0 ? areaGroupsRaw[0].type : null;
+
+    // Top technologies - resolve tag names
+    const tagIds = techGroupsRaw.map(t => t.tagId);
+    const tags = tagIds.length > 0
+      ? await this.prisma.tag.findMany({ where: { id: { in: tagIds } } })
+      : [];
+    const tagMap = Object.fromEntries(tags.map(t => [t.id, t.name]));
+
+    const topTechnologies = techGroupsRaw.map(t => ({
+      name: tagMap[t.tagId] || t.tagId,
+      count: t._count.tagId,
+    }));
+
+    // Jobs by area
+    const jobsByArea = areaData.map(a => ({
+      area: a.type,
+      count: a._count,
+    }));
+
+    // Temporal trend - bucket by week or month
+    const useMonthly = (query.period || '30d') === '90d';
+    const buckets = new Map<string, Map<string, number>>();
+
+    for (const job of jobsForTrend) {
+      const date = job.postedAt || job.createdAt;
+      const key = useMonthly
+        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        : this.getISOWeek(date);
+
+      if (!buckets.has(key)) {
+        buckets.set(key, new Map());
+      }
+      const areaCounts = buckets.get(key)!;
+      areaCounts.set(job.type, (areaCounts.get(job.type) || 0) + 1);
+    }
+
+    const temporalTrend = Array.from(buckets.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([period, counts]) => ({
+        period,
+        counts: Array.from(counts.entries()).map(([area, count]) => ({ area, count })),
+      }));
+
+    // Work modality
+    let remoto = 0, presencial = 0, hibrido = 0;
+    for (const job of jobsForModality) {
+      const loc = (job.location || '').toLowerCase();
+      if (loc.includes('híbrido') || loc.includes('hibrido') || loc.includes('hybrid')) {
+        hibrido++;
+      } else if (job.remote) {
+        remoto++;
+      } else {
+        presencial++;
+      }
+    }
+
+    const workModality = [
+      { modality: 'Remoto', count: remoto },
+      { modality: 'Presencial', count: presencial },
+      { modality: 'Híbrido', count: hibrido },
+    ].filter(m => m.count > 0);
+
+    // Top companies
+    const topCompanies = companyGroups.map(c => ({
+      company: c.company,
+      count: c._count,
+    }));
+
+    return {
+      summary: { totalActive, remotePercentage, topTechnology, topArea },
+      topTechnologies,
+      jobsByArea,
+      temporalTrend,
+      workModality,
+      topCompanies,
+    };
+  }
+
+  private buildAnalyticsWhere(query: AnalyticsQueryDto): Prisma.JobWhereInput {
+    const where: Prisma.JobWhereInput = {};
+
+    const period = query.period || '30d';
+    const now = new Date();
+    const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
+    const dateFilter = new Date(now.getTime() - daysMap[period] * 24 * 60 * 60 * 1000);
+
+    where.OR = [
+      { postedAt: { gte: dateFilter } },
+      { AND: [{ postedAt: null }, { createdAt: { gte: dateFilter } }] },
+    ];
+
+    if (query.level && query.level !== 'ALL') {
+      where.level = query.level;
+    }
+
+    return where;
+  }
+
+  private getISOWeek(date: Date): string {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+    const week1 = new Date(d.getFullYear(), 0, 4);
+    const weekNum = 1 + Math.round(
+      ((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7,
+    );
+    return `${d.getFullYear()}-S${String(weekNum).padStart(2, '0')}`;
   }
 
   async getSources() {

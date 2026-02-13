@@ -10,6 +10,7 @@ import {
   ZevPagination,
 } from '@malvezzidatr/zev-react'
 import { FeaturedJobs } from '../../features/jobs'
+import { getMatchLevel } from '../../features/tech-profile'
 import { useHome } from './useHome'
 import {
   levelOptions,
@@ -38,6 +39,8 @@ export function Home() {
       <FeaturedJobs limit={10} />
 
       <FiltersSection vm={vm} />
+
+      <TechProfileSection vm={vm} />
 
       {vm.loading || vm.fetching || vm.isTransitioning ? (
         <LoadingState />
@@ -176,6 +179,80 @@ function FiltersSection({ vm }: { vm: ReturnType<typeof useHome> }) {
   )
 }
 
+function TechProfileSection({ vm }: { vm: ReturnType<typeof useHome> }) {
+  const isOpen = vm.techProfileOpen
+
+  return (
+    <div className="tech-profile">
+      <div
+        className="tech-profile-header"
+        onClick={() => vm.setTechProfileOpen(!isOpen)}
+      >
+        <span className="tech-profile-toggle">
+          {`Minhas tecnologias (${vm.techCount} techs)`}
+          <span className={`tech-profile-arrow ${isOpen ? 'tech-profile-arrow--open' : ''}`}>&#9662;</span>
+        </span>
+        {vm.hasProfile && !isOpen && (
+          <div className="tech-profile-pills">
+            {vm.techs.slice(0, 6).map(tech => (
+              <span key={tech} className="tech-profile-pill">{tech}</span>
+            ))}
+            {vm.techs.length > 6 && (
+              <span className="tech-profile-pill tech-profile-pill--more">+{vm.techs.length - 6}</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {isOpen && (
+        <div className="tech-profile-body">
+          <div className="tech-profile-selected">
+            <p className="tech-profile-label">Suas tecnologias:</p>
+            {vm.hasProfile ? (
+              <div className="tech-profile-pills">
+                {vm.techs.map(tech => (
+                  <button
+                    key={tech}
+                    className="tech-profile-pill tech-profile-pill--removable"
+                    onClick={() => vm.toggleTech(tech)}
+                  >
+                    {tech} &times;
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="tech-profile-hint">Clique nas tecnologias abaixo para adicionar ao seu perfil</p>
+            )}
+          </div>
+
+          <div className="tech-profile-search">
+            <ZevInput
+              label="Buscar tecnologia para adicionar..."
+              value={vm.techSearch}
+              icon="search"
+              onInputChange={vm.handleTechSearch}
+            />
+          </div>
+
+          {!vm.tagsLoading && (
+            <div className="tech-profile-available">
+              {vm.availableTags.slice(0, 30).map(tag => (
+                <button
+                  key={tag}
+                  className={`tech-profile-tag ${vm.hasTech(tag) ? 'tech-profile-tag--active' : ''}`}
+                  onClick={() => vm.toggleTech(tag)}
+                >
+                  {vm.hasTech(tag) ? `✓ ${tag}` : tag}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function LoadingState() {
   return (
     <>
@@ -231,9 +308,16 @@ function ResultsSection({ vm }: { vm: ReturnType<typeof useHome> }) {
         <div className="jobs-grid">
           {vm.jobs.data.map(job => {
             const jobIsNew = vm.isNewJob(job.postedAt || job.createdAt)
+            const { score } = vm.getMatchScore(job.tags.map(t => t.name))
+            const matchLevel = getMatchLevel(score)
             return (
               <div key={job.id} className={`job-card-wrapper ${vm.isFavorite(job.id) ? 'is-favorite' : ''} ${jobIsNew ? 'is-new' : ''}`}>
                 {jobIsNew && <span className="new-badge">NOVA</span>}
+                {matchLevel && matchLevel !== 'none' && (
+                  <span className={`match-badge match-badge--${matchLevel}`}>
+                    {score}% match
+                  </span>
+                )}
                 <ZevJobCard
                   title={vm.isFavorite(job.id) ? `★ ${job.title}` : job.title}
                   company={job.company}

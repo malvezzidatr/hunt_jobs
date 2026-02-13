@@ -34,6 +34,16 @@ export interface HomeState {
 
   // Novas vagas
   newJobsCount: number
+
+  // Tech profile
+  techs: string[]
+  techCount: number
+  hasProfile: boolean
+  availableTags: string[]
+  tagsLoading: boolean
+  techSearch: string
+  techProfileOpen: boolean
+  setTechProfileOpen: (open: boolean) => void
 }
 
 // Ações do hook
@@ -58,6 +68,12 @@ export interface HomeActions {
 
   // Formatters
   formatPostedAt: (dateStr?: string) => string
+
+  // Tech profile
+  toggleTech: (name: string) => void
+  hasTech: (name: string) => boolean
+  getMatchScore: (jobTags: string[]) => { score: number; matched: string[] }
+  handleTechSearch: (e: CustomEvent) => void
 }
 
 // ViewModel completo

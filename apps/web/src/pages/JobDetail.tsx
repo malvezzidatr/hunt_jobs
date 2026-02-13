@@ -10,7 +10,7 @@ import {
 } from '@malvezzidatr/zev-react'
 import { useJob } from '../features/jobs'
 import { useFavorites } from '../features/favorites'
-import { ResumeAnalyzer } from '../features/resume-analyzer'
+import { ResumeAnalyzer, ResumeOptimizer } from '../features/resume-analyzer'
 import { LearningPath } from '../features/learning-path'
 
 export default function JobDetail() {
@@ -22,6 +22,7 @@ export default function JobDetail() {
   const jobIsFavorite = id ? isFavorite(id) : false
   const [copied, setCopied] = useState(false)
   const [showAnalyzer, setShowAnalyzer] = useState(false)
+  const [showOptimizer, setShowOptimizer] = useState(false)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -223,9 +224,14 @@ export default function JobDetail() {
               <ZevBadge variant="info" label={formatLevel(job.level)} />
               <ZevBadge variant="warning" label={formatType(job.type)} />
             </div>
-            <ZevButton variant="secondary" onButtonClick={() => setShowAnalyzer(true)}>
-              Analisar CV
-            </ZevButton>
+            <div className="job-detail-ai-buttons">
+              <ZevButton variant="secondary" onButtonClick={() => setShowAnalyzer(true)}>
+                Analisar CV
+              </ZevButton>
+              <ZevButton variant="secondary" onButtonClick={() => setShowOptimizer(true)}>
+                Otimizar CV
+              </ZevButton>
+            </div>
           </div>
           <div className="job-detail-info">
             <div className="job-detail-info-item">
@@ -304,6 +310,13 @@ export default function JobDetail() {
         jobTitle={job.title}
         isOpen={showAnalyzer}
         onClose={() => setShowAnalyzer(false)}
+      />
+
+      <ResumeOptimizer
+        jobId={id || ''}
+        jobTitle={job.title}
+        isOpen={showOptimizer}
+        onClose={() => setShowOptimizer(false)}
       />
     </div>
   )

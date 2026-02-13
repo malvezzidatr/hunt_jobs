@@ -46,8 +46,9 @@ export interface JobsQuery {
   source?: string;
   tags?: string;
   ids?: string;
+  techs?: string;
   period?: '24h' | '7d' | '30d';
-  sort?: 'recent' | 'oldest';
+  sort?: 'recent' | 'oldest' | 'match';
   page?: number;
   limit?: number;
 }
